@@ -1,0 +1,7 @@
+C:\Users\Глеб\.gitProg\programming-4course\task Newton - 13 var\bin\Debug\task Newton - 13 var.exe.config
+C:\Users\Глеб\.gitProg\programming-4course\task Newton - 13 var\bin\Debug\task Newton - 13 var.exe
+C:\Users\Глеб\.gitProg\programming-4course\task Newton - 13 var\bin\Debug\task Newton - 13 var.pdb
+C:\Users\Глеб\.gitProg\programming-4course\task Newton - 13 var\obj\Debug\task Newton - 13 var.csproj.AssemblyReference.cache
+C:\Users\Глеб\.gitProg\programming-4course\task Newton - 13 var\obj\Debug\task Newton - 13 var.csproj.CoreCompileInputs.cache
+C:\Users\Глеб\.gitProg\programming-4course\task Newton - 13 var\obj\Debug\task Newton - 13 var.exe
+C:\Users\Глеб\.gitProg\programming-4course\task Newton - 13 var\obj\Debug\task Newton - 13 var.pdb
