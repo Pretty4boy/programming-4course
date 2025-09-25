@@ -1,4 +1,5 @@
-﻿using System;
+﻿// Program.cs (обновлённый)
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -11,7 +12,8 @@ using System.Windows.Forms;
 
 namespace task_Newton___13_var
 {
-    internal class Program
+    // Сделаем Program публичным, чтобы тесты могли обращаться к методам
+    public static class Program
     {
         [STAThread]
         static void Main()
@@ -41,18 +43,9 @@ namespace task_Newton___13_var
                 string fileName = Console.ReadLine()?.Trim() ?? "";
                 try
                 {
-                    string[] tokens = File.ReadAllText(fileName)
-                        .Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (tokens.Length < 5)
-                    {
-                        Console.WriteLine("В файле должно быть минимум 5 чисел: a b c eps x0");
-                        return;
-                    }
-                    a = ParseDoubleFlexible(tokens[0]);
-                    b = ParseDoubleFlexible(tokens[1]);
-                    c = ParseDoubleFlexible(tokens[2]);
-                    eps = ParseDoubleFlexible(tokens[3]);
-                    x0 = ParseDoubleFlexible(tokens[4]);
+                    // Используем новую публичную утилиту
+                    var tup = ParseParametersFromFile(fileName);
+                    a = tup.a; b = tup.b; c = tup.c; eps = tup.eps; x0 = tup.x0;
                 }
                 catch (Exception ex)
                 {
@@ -93,7 +86,7 @@ namespace task_Newton___13_var
             try
             {
                 var modResult = ModifiedNewton(f, df, x0, eps, maxIter: 1000);
-                // Эталонный корень: обычный Ньютон с пересчётом производной и очень малой точностью
+                // Эталонный корень: обычный Ньютон
                 var exactResult = StandardNewton(f, df, x0, tol: 1e-14, maxIter: 2000);
 
                 Console.WriteLine();
@@ -125,9 +118,9 @@ namespace task_Newton___13_var
                     Console.WriteLine($"{it.Index}\t {it.Xn:E}\t {it.Fxn:E}\t {it.Delta:E}");
                 }
 
-                Application.EnableVisualStyles();
-                Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new GraphForm(f, a, b, c, modResult.IterationsForPlot));
+                System.Windows.Forms.Application.EnableVisualStyles();
+                System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
+                System.Windows.Forms.Application.Run(new GraphForm(f, a, b, c, modResult.IterationsForPlot));
             }
             catch (Exception ex)
             {
@@ -136,7 +129,7 @@ namespace task_Newton___13_var
         }
 
         // ---------- ЧТЕНИЕ ВВОДА ----------
-        static int ReadIntInRange(string prompt, int min, int max)
+        public static int ReadIntInRange(string prompt, int min, int max)
         {
             while (true)
             {
@@ -147,7 +140,7 @@ namespace task_Newton___13_var
             }
         }
 
-        static double ReadDouble(string prompt)
+        public static double ReadDouble(string prompt)
         {
             while (true)
             {
@@ -159,37 +152,55 @@ namespace task_Newton___13_var
             }
         }
 
-        static double ParseDoubleFlexible(string s)
+        // Сделаем парсер и вспомогательный метод публичными — тесты смогут их вызывать
+        public static double ParseDoubleFlexible(string s)
         {
+            // Попытка с текущей культурой
             if (double.TryParse(s, NumberStyles.Float, CultureInfo.CurrentCulture, out double v)) return v;
+            // Попытка с инвариантной культурой
             if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out v)) return v;
+
+            // Если не распарсилось, попробуем заменить запятую на точку и парсить инвариантно.
+            // Это позволяет корректно понимать "1,5" независимо от CurrentCulture.
+            string alt = s.Replace(',', '.');
+            if (double.TryParse(alt, NumberStyles.Float, CultureInfo.InvariantCulture, out v)) return v;
+
             throw new FormatException($"Не удалось распознать число: {s}");
         }
 
-        // ---------- МЕТОДЫ РЕШЕНИЯ ----------
-        class IterationRecord
+        /// <summary>
+        /// Прочитать первые пять токенов из файла: a b c eps x0.
+        /// Разделители: пробел/таб/перевод строки/запятая.
+        /// Бросает исключения при ошибках.
+        /// </summary>
+        public static (double a, double b, double c, double eps, double x0) ParseParametersFromFile(string filePath)
         {
-            public int Index;
-            public double Xn;
-            public double Fxn;
-            public double Delta;
+            if (!File.Exists(filePath)) throw new FileNotFoundException($"Файл не найден: {filePath}");
+
+            // Разделяем только по пробельным символам (не по запятой!)
+            string[] tokens = File.ReadAllText(filePath)
+                .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (tokens.Length < 5) throw new FormatException("В файле недостаточно токенов: требуется 5 (a b c eps x0).");
+
+            double a = ParseDoubleFlexible(tokens[0]);
+            double b = ParseDoubleFlexible(tokens[1]);
+            double c = ParseDoubleFlexible(tokens[2]);
+            double eps = ParseDoubleFlexible(tokens[3]);
+            double x0 = ParseDoubleFlexible(tokens[4]);
+
+            return (a, b, c, eps, x0);
         }
 
-        class NewtonResult
-        {
-            public bool Converged;
-            public double Root;
-            public int Iterations;
-            public List<IterationRecord> IterationsData = new List<IterationRecord>();
-            public List<double> IterationsForPlot = new List<double>();
-        }
+        // ---------- МЕТОДЫ РЕШЕНИЯ ----------
+        // Оставим IterationRecord и NewtonResult как внешние публичные классы (см. ниже)
 
         // Модифицированный Ньютон
-        static NewtonResult ModifiedNewton(Func<double, double> f, Func<double, double> df, double x0, double eps, int maxIter = 1000)
+        public static NewtonResult ModifiedNewton(Func<double, double> f, Func<double, double> df, double x0, double eps, int maxIter = 1000)
         {
             var res = new NewtonResult();
             double d0 = df(x0);
-            if (Math.Abs(d0) < 1e-16) throw new Exception("Производная в начальной точке близка к нулю — модифицированный метод не применим.");
+            if (double.IsNaN(d0) || Math.Abs(d0) < 1e-16) throw new Exception("Производная в начальной точке близка к нулю — модифицированный метод не применим.");
 
             double xn = x0;
             res.IterationsForPlot.Add(xn);
@@ -217,7 +228,7 @@ namespace task_Newton___13_var
         }
 
         // Классический Ньютон (пересчитываем производную)
-        static NewtonResult StandardNewton(Func<double, double> f, Func<double, double> df, double x0, double tol = 1e-14, int maxIter = 2000)
+        public static NewtonResult StandardNewton(Func<double, double> f, Func<double, double> df, double x0, double tol = 1e-14, int maxIter = 2000)
         {
             var res = new NewtonResult();
             double xn = x0;
@@ -226,7 +237,7 @@ namespace task_Newton___13_var
             {
                 double fx = f(xn);
                 double dfx = df(xn);
-                if (Math.Abs(dfx) < 1e-16) break; // проблемная точка
+                if (double.IsNaN(dfx) || Math.Abs(dfx) < 1e-16) break; // проблемная точка
                 double xnext = xn - fx / dfx;
                 double delta = xnext - xn;
                 res.IterationsData.Add(new IterationRecord { Index = n + 1, Xn = xnext, Fxn = f(xnext), Delta = delta });
@@ -239,6 +250,25 @@ namespace task_Newton___13_var
             res.Iterations = maxIter;
             return res;
         }
+    }
+
+    // Вынесем записи итераций и результат в публичные классы на уровне namespace,
+    // чтобы тесты могли использовать их.
+    public class IterationRecord
+    {
+        public int Index;
+        public double Xn;
+        public double Fxn;
+        public double Delta;
+    }
+
+    public class NewtonResult
+    {
+        public bool Converged;
+        public double Root;
+        public int Iterations;
+        public List<IterationRecord> IterationsData = new List<IterationRecord>();
+        public List<double> IterationsForPlot = new List<double>();
     }
 
     // ---------- ФОРМА ДЛЯ ГРАФИЧЕСКОГО ОТОБРАЖЕНИЯ ----------

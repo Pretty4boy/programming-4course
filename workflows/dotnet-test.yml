@@ -1,0 +1,47 @@
+name: .NET CI — Build & Test (Windows)
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build-and-test-windows:
+    name: Build & Test (windows-latest)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dotnet-version: ["7.0.x"]   # при необходимости поменяйте на 6.0.x, 8.0.x и т.п.
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+
+      - name: Show .NET info
+        run: dotnet --info
+
+      - name: Restore NuGet packages
+        run: dotnet restore '.gitProg/programming-4course/task Newton - 13 var/task Newton - 13 var.csproj'
+
+      - name: Build (override OutputType=Library)
+        # Переопределяем OutputType в процессе сборки чтобы не менять .csproj в репозитории
+        run: dotnet build '.gitProg/programming-4course/task Newton - 13 var/task Newton - 13 var.csproj' --configuration Debug -p:OutputType=Library
+
+      - name: Test (no build)
+        run: dotnet test '.gitProg/programming-4course/task Newton - 13 var/task Newton - 13 var.csproj' --no-build --logger "trx;LogFileName=TestResults.trx" --verbosity normal
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-windows
+          path: '**/TestResults.trx'
